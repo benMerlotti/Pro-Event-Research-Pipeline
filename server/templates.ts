@@ -71,14 +71,17 @@ export interface ReplacementInput {
 // Mirror of PipelineCard.applyReplacementsForContact.
 export function applyReplacements(text: string, input: ReplacementInput): string {
   const name = input.eventName;
+  // [Salesperson] inserts the rep's FIRST name only.
+  const salespersonFirst = (input.salesperson || "Sales Representative").trim().split(/\s+/)[0];
   let out = text;
   out = out.replace(/\[Event Name\]/gi, name);
   out = out.replace(/\[Vendor Name\]/gi, name);
   out = out.replace(/\[Event\]/gi, name);
   out = out.replace(/\[Vendor\]/gi, name);
-  out = out.replace(/\[Salesperson\]/gi, input.salesperson || "Sales Representative");
+  out = out.replace(/\[Salesperson\]/gi, salespersonFirst);
   out = out.replace(/\[Contact Name\]/gi, input.contactName || "Team");
   out = out.replace(/\[Location\]/gi, extractCity(input.location || "your area"));
   out = out.replace(/\[Month\]/gi, extractMonth(input.date || ""));
+  out = out.replace(/\[Website\]/gi, "druid-productions.com");
   return out;
 }

@@ -365,7 +365,8 @@ const PipelineCard: React.FC<PipelineCardProps> = ({
   const applyReplacementsForContact = (tplText: string, contact: any) => {
     let text = tplText;
     const nameVal = event.eventName;
-    const salespersonName = userDisplayName || "Sales Representative";
+    // [Salesperson] inserts the rep's FIRST name only.
+    const salespersonFirst = (userDisplayName || "Sales Representative").trim().split(/\s+/)[0];
     const contactNameVal = contact?.name || "Team";
     const locationVal = extractCity(event.location || "your area");
     const monthVal = extractMonth(event.date || "");
@@ -376,10 +377,11 @@ const PipelineCard: React.FC<PipelineCardProps> = ({
     text = text.replace(/\[Event\]/gi, nameVal);
     text = text.replace(/\[Vendor\]/gi, nameVal);
 
-    text = text.replace(/\[Salesperson\]/gi, salespersonName);
+    text = text.replace(/\[Salesperson\]/gi, salespersonFirst);
     text = text.replace(/\[Contact Name\]/gi, contactNameVal);
     text = text.replace(/\[Location\]/gi, locationVal);
     text = text.replace(/\[Month\]/gi, monthVal);
+    text = text.replace(/\[Website\]/gi, "druid-productions.com");
 
     return text;
   };
@@ -1056,7 +1058,7 @@ const PipelineCard: React.FC<PipelineCardProps> = ({
                   <div className="text-[8px] text-slate-500 font-mono">
                     Placeholders supported:{" "}
                     <span className="text-primary font-bold">
-                      [Event Name], [Contact Name], [Month], [Location], [Salesperson]
+                      [Event Name], [Contact Name], [Month], [Location], [Salesperson], [Website]
                     </span>
                   </div>
 

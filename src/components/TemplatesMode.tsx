@@ -5,7 +5,7 @@ import { cn } from '@/src/lib/utils';
 import { FileText, Plus, Pencil, Trash2, Lock, Users, User as UserIcon } from 'lucide-react';
 
 // Placeholders the composer auto-fills from each event/contact when sending.
-const PLACEHOLDERS = ['[Contact Name]', '[Event Name]', '[Vendor Name]', '[Location]', '[Month]', '[Salesperson]'];
+const PLACEHOLDERS = ['[Contact Name]', '[Event Name]', '[Vendor Name]', '[Location]', '[Month]', '[Salesperson]', '[Website]'];
 
 const ScopeBadge: React.FC<{ scope: EmailTemplate['scope'] }> = ({ scope }) => {
   if (scope === 'shared') return (

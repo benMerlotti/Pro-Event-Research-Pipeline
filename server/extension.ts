@@ -18,7 +18,7 @@ async function loadTemplatesForUser(uid: string): Promise<ExtensionTemplate[]> {
   const mapDoc = (d: FirebaseFirestore.QueryDocumentSnapshot): ExtensionTemplate => ({
     id: d.id,
     name: (d.data().name as string) ?? "Untitled",
-    subject: DEFAULT_SUBJECT,
+    subject: (d.data().subject as string) ?? DEFAULT_SUBJECT,
     text: (d.data().text as string) ?? "",
   });
   return [BUILT_IN_TEMPLATE, ...shared.docs.map(mapDoc), ...personal.docs.map(mapDoc)];

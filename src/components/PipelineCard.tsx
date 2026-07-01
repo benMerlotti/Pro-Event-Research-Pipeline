@@ -305,7 +305,9 @@ const PipelineCard: React.FC<PipelineCardProps> = ({
 
   const [isComposerOpen, setIsComposerOpen] = useState(false);
   const [emailText, setEmailText] = useState("");
+  const [emailSubject, setEmailSubject] = useState("");
   const [copiedDraft, setCopiedDraft] = useState(false);
+  const [copiedSubject, setCopiedSubject] = useState(false);
   const { user, profile } = useFirebase();
   const isAdmin = profile?.role === 'admin';
   // Templates are read-only here — reps select and send; management lives in the
@@ -399,6 +401,7 @@ const PipelineCard: React.FC<PipelineCardProps> = ({
     const rawText = currentVars[idx % currentVars.length];
     const resolved = applyReplacementsForContact(rawText, contact);
     setEmailText(resolved);
+    setEmailSubject(applyReplacementsForContact(found.subject || "", contact));
     setSelectedComposeContact(contact);
 
     // Advance the rotation for next time.
@@ -432,6 +435,7 @@ const PipelineCard: React.FC<PipelineCardProps> = ({
     setSelectedTemplateId(id);
     if (!id) {
       setEmailText("");
+      setEmailSubject("");
       setSelectedComposeContact(null);
       return;
     }
@@ -476,7 +480,7 @@ const PipelineCard: React.FC<PipelineCardProps> = ({
 
   const launchEmailClient = (clientKey: string) => {
     const toEmail = selectedComposeContact?.email || "";
-    const subject = `Outreach - ${event.eventName}`;
+    const subject = emailSubject || `Outreach - ${event.eventName}`;
     
     // Remember preference if checkbox checked
     const checkbox = document.getElementById(`remember_email_choice_${event.eventId}`) as HTMLInputElement;
@@ -984,6 +988,7 @@ const PipelineCard: React.FC<PipelineCardProps> = ({
                               const idx = cached?.index ?? 0;
                               const rawText = vars[idx % vars.length];
                               setEmailText(applyReplacementsForContact(rawText, contact));
+                              setEmailSubject(applyReplacementsForContact(found.subject || "", contact));
                             }
                           }
                         }}
@@ -1064,6 +1069,24 @@ const PipelineCard: React.FC<PipelineCardProps> = ({
                     )}
                   </div>
 
+                </div>
+
+                {/* Subject line (read-only, filled from the template) */}
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="text-[9px] font-mono uppercase tracking-wider font-bold text-slate-500 shrink-0">Subject:</span>
+                  <input
+                    value={emailSubject}
+                    readOnly
+                    placeholder="Filled from the selected template"
+                    className="flex-1 bg-black/50 border border-white/5 rounded px-2.5 py-1 text-xs text-slate-200 placeholder-slate-600 focus:outline-none select-text cursor-default"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => { if (emailSubject) { navigator.clipboard.writeText(emailSubject); setCopiedSubject(true); setTimeout(() => setCopiedSubject(false), 1500); } }}
+                    className="shrink-0 px-2 py-1 rounded bg-white/5 hover:bg-white/10 text-[10px] text-slate-300 transition-colors"
+                  >
+                    {copiedSubject ? "✓" : "Copy"}
+                  </button>
                 </div>
 
                 {/* Body Composition space - utilizes the full remaining height of the container */}

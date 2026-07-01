@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { useFirebase } from './FirebaseProvider';
 import { useTemplates, EmailTemplate } from '@/src/lib/useTemplates';
+import { DEFAULT_TEMPLATE_SUBJECT } from '@/src/lib/defaultTemplate';
 import { cn } from '@/src/lib/utils';
 import { FileText, Plus, Pencil, Trash2, Lock, Users, User as UserIcon } from 'lucide-react';
 
@@ -27,11 +28,15 @@ const TemplatesMode: React.FC = () => {
   const [editing, setEditing] = useState<EmailTemplate | null>(null);
   const [creating, setCreating] = useState(false);
   const [name, setName] = useState('');
+  const [subject, setSubject] = useState('');
   const [text, setText] = useState('');
   const [shareWithAll, setShareWithAll] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const textRef = useRef<HTMLTextAreaElement>(null);
+  const subjectRef = useRef<HTMLInputElement>(null);
+  // Which field a placeholder click should insert into.
+  const lastFocused = useRef<'subject' | 'body'>('body');
 
   if (!isAdmin) {
     return (
@@ -43,28 +48,38 @@ const TemplatesMode: React.FC = () => {
 
   const isFormOpen = creating || !!editing;
 
-  const startCreate = () => { setCreating(true); setEditing(null); setName(''); setText(''); setShareWithAll(false); setError(''); };
-  const startEdit = (t: EmailTemplate) => { setEditing(t); setCreating(false); setName(t.name); setText(t.text); setShareWithAll(t.scope === 'shared'); setError(''); };
-  const cancel = () => { setCreating(false); setEditing(null); setName(''); setText(''); setError(''); };
+  const startCreate = () => { setCreating(true); setEditing(null); setName(''); setSubject(DEFAULT_TEMPLATE_SUBJECT); setText(''); setShareWithAll(false); setError(''); };
+  const startEdit = (t: EmailTemplate) => { setEditing(t); setCreating(false); setName(t.name); setSubject(t.subject || DEFAULT_TEMPLATE_SUBJECT); setText(t.text); setShareWithAll(t.scope === 'shared'); setError(''); };
+  const cancel = () => { setCreating(false); setEditing(null); setName(''); setSubject(''); setText(''); setError(''); };
 
   const insertPlaceholder = (ph: string) => {
-    const el = textRef.current;
-    if (!el) { setText(t => t + ph); return; }
-    const start = el.selectionStart ?? text.length;
-    const end = el.selectionEnd ?? text.length;
-    setText(text.slice(0, start) + ph + text.slice(end));
-    requestAnimationFrame(() => { el.focus(); el.selectionStart = el.selectionEnd = start + ph.length; });
+    if (lastFocused.current === 'subject') {
+      const el = subjectRef.current;
+      if (!el) { setSubject(s => s + ph); return; }
+      const start = el.selectionStart ?? subject.length;
+      const end = el.selectionEnd ?? subject.length;
+      setSubject(subject.slice(0, start) + ph + subject.slice(end));
+      requestAnimationFrame(() => { el.focus(); el.selectionStart = el.selectionEnd = start + ph.length; });
+    } else {
+      const el = textRef.current;
+      if (!el) { setText(t => t + ph); return; }
+      const start = el.selectionStart ?? text.length;
+      const end = el.selectionEnd ?? text.length;
+      setText(text.slice(0, start) + ph + text.slice(end));
+      requestAnimationFrame(() => { el.focus(); el.selectionStart = el.selectionEnd = start + ph.length; });
+    }
   };
 
   const save = async () => {
     if (!name.trim()) { setError('Enter a template name.'); return; }
+    if (!subject.trim()) { setError('Enter a subject line.'); return; }
     if (!text.trim()) { setError('Enter the template body.'); return; }
     setSaving(true); setError('');
     try {
       if (editing) {
-        await updateTemplate(editing, { name: name.trim(), text });
+        await updateTemplate(editing, { name: name.trim(), subject: subject.trim(), text });
       } else {
-        await createTemplate(name.trim(), text, shareWithAll, profile?.displayName || '');
+        await createTemplate(name.trim(), subject.trim(), text, shareWithAll, profile?.displayName || '');
       }
       cancel();
     } catch (e: any) {
@@ -106,8 +121,21 @@ const TemplatesMode: React.FC = () => {
           </div>
 
           <div className="space-y-1.5">
+            <label className="text-xs uppercase tracking-wider text-slate-400 font-semibold">Subject</label>
+            <input
+              ref={subjectRef}
+              value={subject}
+              onFocus={() => { lastFocused.current = 'subject'; }}
+              onChange={e => setSubject(e.target.value)}
+              placeholder="e.g. Event video coverage for [Event Name]"
+              className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-primary/50"
+            />
+          </div>
+
+          <div className="space-y-1.5">
             <label className="text-xs uppercase tracking-wider text-slate-400 font-semibold">Body</label>
-            <div className="flex flex-wrap gap-1.5">
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="text-[10px] text-slate-500 mr-1">Insert:</span>
               {PLACEHOLDERS.map(ph => (
                 <button
                   key={ph}
@@ -122,6 +150,7 @@ const TemplatesMode: React.FC = () => {
             <textarea
               ref={textRef}
               value={text}
+              onFocus={() => { lastFocused.current = 'body'; }}
               onChange={e => setText(e.target.value)}
               rows={14}
               placeholder="Write your template. Click a placeholder above to insert it at the cursor."

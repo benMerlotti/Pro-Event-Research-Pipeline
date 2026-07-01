@@ -444,11 +444,34 @@ const PipelineCard: React.FC<PipelineCardProps> = ({
     }
   };
 
-  const handleCopyText = () => {
+  const handleCopyText = async () => {
     if (!emailText) return;
-    navigator.clipboard.writeText(emailText);
-    setCopiedDraft(true);
-    setTimeout(() => setCopiedDraft(false), 2000);
+    const flash = () => { setCopiedDraft(true); setTimeout(() => setCopiedDraft(false), 2000); };
+
+    // Build an HTML version so URLs (e.g. druid-productions.com) paste into Gmail
+    // as real clickable links, while keeping a plain-text fallback.
+    const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    const linkify = (s: string) =>
+      s.replace(/\b(https?:\/\/[^\s<]+|www\.[^\s<]+|[a-z0-9-]+(?:\.[a-z0-9-]+)*\.(?:com|net|org|io|co|us|tech)(?:\/[^\s<]*)?)/gi, (url) => {
+        const trail = (url.match(/[.,;:!?)]+$/) || [""])[0];
+        const clean = trail ? url.slice(0, -trail.length) : url;
+        const href = /^https?:\/\//i.test(clean) ? clean : `https://${clean}`;
+        return `<a href="${href}">${clean}</a>${trail}`;
+      });
+    const html = linkify(esc(emailText)).replace(/\n/g, "<br>");
+
+    try {
+      await navigator.clipboard.write([
+        new ClipboardItem({
+          "text/plain": new Blob([emailText], { type: "text/plain" }),
+          "text/html": new Blob([html], { type: "text/html" }),
+        }),
+      ]);
+      flash();
+    } catch {
+      // Older browsers / no rich-clipboard support — fall back to plain text.
+      navigator.clipboard.writeText(emailText).then(flash).catch(() => {});
+    }
   };
 
   const launchEmailClient = (clientKey: string) => {
